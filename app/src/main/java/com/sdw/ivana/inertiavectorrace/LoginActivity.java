@@ -5,6 +5,7 @@ import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.CursorLoader;
+import android.content.Intent;
 import android.content.Loader;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -21,24 +22,22 @@ import android.support.design.widget.TextInputLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.Window;
 import android.view.WindowManager;
-import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.backendless.Backendless;
 import com.backendless.BackendlessUser;
-import com.backendless.async.callback.BackendlessCallback;
+import com.backendless.async.callback.AsyncCallback;
 import com.backendless.exceptions.BackendlessException;
 import com.backendless.exceptions.BackendlessFault;
+import com.backendless.persistence.local.UserIdStorageFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,21 +59,24 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      */
     private UserLoginTask mAuthTask = null;
     private UserSignUpTask mSignUpTask = null;
+    private UserV1 loggedUser = null;
     private boolean loggedIn = false;
-    private boolean signUpSucess = false;
 
     // UI references.
+    private TextInputLayout tilEmail;
+    private TextInputLayout tilPassword;
+    private TextInputLayout tilNickname;
     private AutoCompleteTextView mEmailView;
     private EditText mPasswordView;
+    private EditText mNickView;
     private View mProgressView;
     private View mLoginFormView;
-    private LinearLayout signUpLayOut;
     private Button mEmailSignInButton;
     private String email;
     private String password;
+    private String nickname;
     private TextView promptSignUp;
     private String signUpError;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,8 +85,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         setContentView(R.layout.activity_login);
 
         //Set Backendless
-        String appVersion = "v1";
-        Backendless.initApp(this, getString(R.string.backendless_add_id), getString(R.string.backendless_secret_key), appVersion);
+        Backendless.initApp(this, Defaults.APPLICATION_ID, Defaults.SECRET_KEY, Defaults.VERSION);
 
         //Set Window Size
         Point lowerBottomPoint = new Point();
@@ -97,25 +98,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         Typeface typeface = Typeface.createFromAsset(getAssets(), getString(R.string.font_file_string));
 
         // Set up the login form.
-        TextInputLayout tilEmail = (TextInputLayout) findViewById(R.id.tilEmail);
-        TextInputLayout tilPassword = (TextInputLayout) findViewById(R.id.tilPassword);
+        tilEmail = (TextInputLayout) findViewById(R.id.tilEmail);
+        tilPassword = (TextInputLayout) findViewById(R.id.tilPassword);
+        tilNickname = (TextInputLayout) findViewById(R.id.tilNick);
         promptSignUp = (TextView) findViewById(R.id.new_account_prompt);
         promptSignUp.setTypeface(typeface);
-        promptSignUp.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (promptSignUp.getText() == getString(R.string.prompt_for_new_account)){
-                    promptSignUp.setText(R.string.already_a_user);
-                    mEmailSignInButton.setText(R.string.action_sign_up);
-                } else {
-                    promptSignUp.setText(R.string.prompt_for_new_account);
-                    mEmailSignInButton.setText(R.string.action_sign_in);
-                }
-            }
-        });
-
         tilEmail.setTypeface(typeface);
         tilPassword.setTypeface(typeface);
+        tilNickname.setTypeface(typeface);
 
         mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
         mEmailView.setTypeface(typeface);
@@ -123,6 +113,72 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         mPasswordView = (EditText) findViewById(R.id.password);
         mPasswordView.setTypeface(typeface);
+
+        mNickView = (EditText) findViewById(R.id.nickName);
+        mNickView.setTypeface(typeface);
+
+        mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
+        mEmailSignInButton.setTypeface(typeface);
+
+        mLoginFormView = findViewById(R.id.login_form); //ScrollVIew that contains form
+        mProgressView = findViewById(R.id.login_progress);
+
+
+
+        //Check if a valid login still exists
+        final AsyncCallback<Boolean> isValidLoginCallBack = new AsyncCallback<Boolean>() {
+
+            @Override
+            public void handleResponse(Boolean response) {
+                Log.i("Login Validation", response.toString());
+                if (response){
+                    String userObjectId = UserIdStorageFactory.instance().getStorage().get();
+                    if (!userObjectId.isEmpty()){
+                        Backendless.Data.of(BackendlessUser.class).findById(userObjectId, new AsyncCallback<BackendlessUser>() {
+                            @Override
+                            public void handleResponse(BackendlessUser response) {
+                                Log.i("Login Validation", "User " + response.getEmail() + " logged in automatically");
+                                loggedUser = new UserV1(response.getEmail(), response.getProperty("nickName").toString(),
+                                        null, false);
+                                enterGame(loggedUser, true);
+                            }
+
+                            @Override
+                            public void handleFault(BackendlessFault fault) {
+                                Log.i("Login Validation", fault.getMessage());
+                            }
+                        });
+                    }
+                }
+                showProgress(false);
+            }
+
+            @Override
+            public void handleFault(BackendlessFault fault) {
+                Log.i("Login Validation", fault.getMessage());
+                showProgress(false);
+            }
+        };
+        showProgress(true);
+        Backendless.UserService.isValidLogin(isValidLoginCallBack);
+
+
+
+        promptSignUp.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (promptSignUp.getText() == getString(R.string.prompt_for_new_account)){
+                    promptSignUp.setText(R.string.already_a_user);
+                    tilNickname.setVisibility(View.VISIBLE);
+                    mEmailSignInButton.setText(R.string.action_sign_up);
+                } else {
+                    promptSignUp.setText(R.string.prompt_for_new_account);
+                    mEmailSignInButton.setText(R.string.action_sign_in);
+                    tilNickname.setVisibility(View.GONE);
+                }
+            }
+        });
+
 //        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
 //            @Override
 //            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
@@ -134,8 +190,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 //            }
 //        });
 
-        mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
-        mEmailSignInButton.setTypeface(typeface);
         mEmailSignInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -143,8 +197,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             }
         });
 
-        mLoginFormView = findViewById(R.id.login_form); //ScrollVIew that contains form
-        mProgressView = findViewById(R.id.login_progress);
     }
 
     private void populateAutoComplete() {
@@ -206,10 +258,12 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         // Reset errors.
         mEmailView.setError(null);
         mPasswordView.setError(null);
+        mNickView.setError(null);
 
         // Store values at the time of the login attempt.
         email = mEmailView.getText().toString();
         password = mPasswordView.getText().toString();
+        if (tilNickname.getVisibility() == View.VISIBLE) nickname = mNickView.getText().toString();
 
         boolean cancel = false;
         View focusView = null;
@@ -236,6 +290,13 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             cancel = true;
         }
 
+        //Check for a valid nickname
+        if (tilNickname.getVisibility() == View.VISIBLE && TextUtils.isEmpty(nickname)) {
+            mNickView.setError(getString(R.string.error_field_required));
+            focusView = mNickView;
+            cancel = true;
+        }
+
         if (cancel) {
             // There was an error; don't attempt login and focus the first
             // form field with an error.
@@ -248,10 +309,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 mAuthTask = new UserLoginTask(email, password);
                 mAuthTask.execute((Void) null);
             } else {
-                mSignUpTask = new UserSignUpTask(email, password);
+                mSignUpTask = new UserSignUpTask(email, password, nickname);
                 mSignUpTask.execute((Void) null);
             }
-
         }
     }
 
@@ -344,6 +404,16 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mEmailView.setAdapter(adapter);
     }
 
+    public void enterGame(UserV1 user, boolean persisted){
+        Intent enterGame = new Intent(this, DummyActivity.class);
+        enterGame.putExtra("email", user.getEmail());
+        enterGame.putExtra("nick_name", user.getNickName());
+        enterGame.putExtra("social_account", user.getSocialAccount());
+        enterGame.putExtra("first_time", user.isFirstTime());
+        enterGame.putExtra("persisted", persisted);
+        finish();
+        startActivity(enterGame);
+    }
 
     private interface ProfileQuery {
         String[] PROJECTION = {
@@ -374,8 +444,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
             try
             {
-                BackendlessUser user = Backendless.UserService.login( mEmail, mPassword );
+                BackendlessUser user = Backendless.UserService.login( mEmail, mPassword, true );
                 Log.i( "LogIn", user.getEmail() + " succesfully signed in" );
+                loggedUser = new UserV1(user.getEmail(), user.getProperty("nickName").toString(),
+                        null, false);
                 loggedIn = true;
             }
             catch( BackendlessException exception )
@@ -394,6 +466,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
             if (success) {
                 finish();
+                enterGame(loggedUser, false);
             } else {
                 mEmailView.requestFocus();
             }
@@ -414,10 +487,12 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         private final String mEmail;
         private final String mPassword;
+        private final String mNick;
 
-        UserSignUpTask(String email, String password) {
+        UserSignUpTask(String email, String password, String nick) {
             mEmail = email;
             mPassword = password;
+            mNick = nick;
         }
 
         @Override
@@ -428,7 +503,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             BackendlessUser user = new BackendlessUser();
             user.setEmail(mEmail);
             user.setPassword(mPassword);
-            user.setProperty("NickName", "TestNick");
+            user.setProperty("nickName", mNick);
             try
             {
                 user = Backendless.UserService.register( user );
@@ -451,7 +526,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             showProgress(false);
 
             if (signUpSuccess) {
+                loggedUser = new UserV1(mEmail, mNick, null, true);
                 finish();
+                enterGame(loggedUser, false);
             } else {
                 mEmailView.requestFocus();
                 mEmailView.setError(signUpError);

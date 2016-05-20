@@ -16,8 +16,8 @@
         style="?android:attr/progressBarStyleLarge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
         android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="8dp"
         android:visibility="gone" />
 
     <ScrollView
@@ -34,8 +34,8 @@
             android:id="@+id/email_login_form"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
             android:layout_gravity="center_vertical"
+            android:orientation="vertical"
             >
 
             <android.support.design.widget.TextInputLayout
@@ -43,15 +43,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-            <AutoCompleteTextView
-                android:id="@+id/email"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/prompt_email"
-                android:inputType="textEmailAddress"
-                android:maxLines="1"
-                android:singleLine="true"
-                android:textSize="@dimen/login_text_size"/>
+                <AutoCompleteTextView
+                    android:id="@+id/email"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/prompt_email"
+                    android:inputType="textEmailAddress"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:textSize="@dimen/login_text_size"/>
             </android.support.design.widget.TextInputLayout>
 
             <android.support.design.widget.TextInputLayout
@@ -59,19 +59,37 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
 
-            <EditText
-                android:id="@+id/password"
+                <EditText
+                    android:id="@+id/password"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/prompt_password"
+                    android:imeActionId="@+id/login"
+                    android:imeActionLabel="@string/action_sign_in_short"
+                    android:imeOptions="actionUnspecified"
+                    android:inputType="textPassword"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:textSize="@dimen/login_text_size"
+                    />
+
+            </android.support.design.widget.TextInputLayout>
+
+            <android.support.design.widget.TextInputLayout
+                android:id="@+id/tilNick"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/prompt_password"
-                android:imeActionId="@+id/login"
-                android:imeActionLabel="@string/action_sign_in_short"
-                android:imeOptions="actionUnspecified"
-                android:inputType="textPassword"
-                android:maxLines="1"
-                android:singleLine="true"
-                android:textSize="@dimen/login_text_size"
-                />
+                android:visibility="gone">
+
+                <EditText
+                    android:id="@+id/nickName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/prompt_nick"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:textSize="@dimen/login_text_size"
+                    />
 
             </android.support.design.widget.TextInputLayout>
 
@@ -82,17 +100,17 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/action_sign_in"
-                android:textStyle="bold"
-                android:textSize="@dimen/login_text_size"/>
+                android:textSize="@dimen/login_text_size"
+                android:textStyle="bold"/>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/new_account_prompt"
-                    android:text="@string/prompt_for_new_account"
-                    android:textSize="20sp"
-                    android:layout_marginTop="18dp"
-                    android:layout_gravity="center_horizontal"/>
+            <TextView
+                android:id="@+id/new_account_prompt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="18dp"
+                android:text="@string/prompt_for_new_account"
+                android:textSize="20sp"/>
 
         </LinearLayout>
     </ScrollView>

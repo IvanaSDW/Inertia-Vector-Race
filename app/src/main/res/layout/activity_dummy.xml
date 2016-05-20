@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="com.sdw.ivana.inertiavectorrace.DummyActivity">
+
+    <EditText
+        android:id="@+id/loginType"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:text="LoginType: "/>
+    <EditText
+        android:id="@+id/logedEmail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/loginType"
+        android:layout_centerHorizontal="true"
+        android:text="Email: "/>
+    <EditText
+        android:id="@+id/loggedNick"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/logedEmail"
+        android:layout_centerHorizontal="true"
+        android:text="Nick: "/>
+    <EditText
+        android:id="@+id/persistent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/loggedNick"
+        android:layout_centerHorizontal="true"
+        android:text="Persistent: "/>
+    <EditText
+        android:id="@+id/firsTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/persistent"
+        android:layout_centerHorizontal="true"
+        android:text="First time: "/>
+    <Button
+        android:id="@+id/signOut"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:text="SignOut account"/>
+    <Button
+        android:id="@+id/exit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_toEndOf="@+id/signOut"
+        android:text="Exit App"/>
+
+</RelativeLayout>
