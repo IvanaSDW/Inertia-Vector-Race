@@ -7,6 +7,7 @@ import android.app.LoaderManager.LoaderCallbacks;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Point;
@@ -15,9 +16,11 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
+import android.support.design.widget.TextInputEditText;
 import android.support.design.widget.TextInputLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
@@ -29,7 +32,6 @@ import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
 
 import com.backendless.Backendless;
@@ -67,8 +69,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private TextInputLayout tilPassword;
     private TextInputLayout tilNickname;
     private AutoCompleteTextView mEmailView;
-    private EditText mPasswordView;
-    private EditText mNickView;
+    private TextInputEditText mPasswordView;
+    private TextInputEditText mNickView;
     private View mProgressView;
     private View mLoginFormView;
     private Button mEmailSignInButton;
@@ -77,6 +79,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private String nickname;
     private TextView promptSignUp;
     private String signUpError;
+    private boolean toSignOut = false;
+    private int lobbyId = 9999;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,46 +88,18 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_login);
 
-        //Set Backendless
-        Backendless.initApp(this, Defaults.APPLICATION_ID, Defaults.SECRET_KEY, Defaults.VERSION);
+        Bundle extras = getIntent().getExtras();
+        if (extras != null){
+            if (extras.containsKey("to_log_out")) toSignOut = extras.getBoolean("to_log_out");
+//            if (extras.containsKey("lobby_id")) lobbyId = extras.getInt("lobby_id");
+        }
 
-        //Set Window Size
-        Point lowerBottomPoint = new Point();
-        getWindowManager().getDefaultDisplay().getRealSize(lowerBottomPoint);
-        WindowManager.LayoutParams params = getWindow().getAttributes();
-        params.width = Math.min(600, lowerBottomPoint.x);
-        params.height = 320;
-        getWindow().setAttributes(params);
-
-        Typeface typeface = Typeface.createFromAsset(getAssets(), getString(R.string.font_file_string));
-
-        // Set up the login form.
-        tilEmail = (TextInputLayout) findViewById(R.id.tilEmail);
-        tilPassword = (TextInputLayout) findViewById(R.id.tilPassword);
-        tilNickname = (TextInputLayout) findViewById(R.id.tilNick);
-        promptSignUp = (TextView) findViewById(R.id.new_account_prompt);
-        promptSignUp.setTypeface(typeface);
-        tilEmail.setTypeface(typeface);
-        tilPassword.setTypeface(typeface);
-        tilNickname.setTypeface(typeface);
-
-        mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
-        mEmailView.setTypeface(typeface);
-        populateAutoComplete();
-
-        mPasswordView = (EditText) findViewById(R.id.password);
-        mPasswordView.setTypeface(typeface);
-
-        mNickView = (EditText) findViewById(R.id.nickName);
-        mNickView.setTypeface(typeface);
-
-        mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
-        mEmailSignInButton.setTypeface(typeface);
-
+        //Init main UI views
         mLoginFormView = findViewById(R.id.login_form); //ScrollVIew that contains form
         mProgressView = findViewById(R.id.login_progress);
 
-
+        //Set Backendless
+        Backendless.initApp(this, Defaults.APPLICATION_ID, Defaults.SECRET_KEY, Defaults.VERSION);
 
         //Check if a valid login still exists
         final AsyncCallback<Boolean> isValidLoginCallBack = new AsyncCallback<Boolean>() {
@@ -140,7 +116,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                 Log.i("Login Validation", "User " + response.getEmail() + " logged in automatically");
                                 loggedUser = new UserV1(response.getEmail(), response.getProperty("nickName").toString(),
                                         null, false);
-                                enterGame(loggedUser, true);
+                                if (toSignOut) signOutInertiaUser();
+                                else enterGame(loggedUser, true);
                             }
 
                             @Override
@@ -162,7 +139,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         showProgress(true);
         Backendless.UserService.isValidLogin(isValidLoginCallBack);
 
-
+        initUI();
 
         promptSignUp.setOnClickListener(new OnClickListener() {
             @Override
@@ -196,6 +173,68 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 attemptLogin(mEmailSignInButton.getText().toString());
             }
         });
+
+    }
+
+    private void signOutInertiaUser() {
+        Backendless.UserService.logout(new AsyncCallback<Void>() {
+            @Override
+            public void handleResponse(Void response) {
+                Log.i("Logout", "succesfully logged out");
+                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getBaseContext()).edit();
+                editor.putInt("sign_in_type", Defaults.SIGNED_OUT);
+                editor.apply();
+                Intent lobby = new Intent(getBaseContext(), LobbyActivity.class);
+                lobby.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                startActivity(lobby);
+                finish();
+            }
+
+            @Override
+            public void handleFault(BackendlessFault fault) {
+                Log.i("Logout", fault.getMessage());
+                Intent lobby = new Intent(getBaseContext(), LobbyActivity.class);
+                lobby.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(lobby);
+                finish();
+            }
+        });
+    }
+
+    private void initUI() {
+        //Set Window Size
+        Point lowerBottomPoint = new Point();
+        getWindowManager().getDefaultDisplay().getRealSize(lowerBottomPoint);
+        WindowManager.LayoutParams params = getWindow().getAttributes();
+        params.width = Math.min(600, lowerBottomPoint.x);
+        params.height = 320;
+        getWindow().setAttributes(params);
+
+        //Set Custom fonts
+        Typeface typeface = Typeface.createFromAsset(getAssets(), getString(R.string.font_file_string));
+
+        // Set up the login form.
+        tilEmail = (TextInputLayout) findViewById(R.id.tilEmail);
+        tilPassword = (TextInputLayout) findViewById(R.id.tilPassword);
+        tilNickname = (TextInputLayout) findViewById(R.id.tilNick);
+        promptSignUp = (TextView) findViewById(R.id.new_account_prompt);
+        promptSignUp.setTypeface(typeface);
+        tilEmail.setTypeface(typeface);
+        tilPassword.setTypeface(typeface);
+        tilNickname.setTypeface(typeface);
+
+        mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
+        mEmailView.setTypeface(typeface);
+        populateAutoComplete();
+
+        mPasswordView = (TextInputEditText) findViewById(R.id.password);
+        mPasswordView.setTypeface(typeface);
+
+        mNickView = (TextInputEditText) findViewById(R.id.nickName);
+        mNickView.setTypeface(typeface);
+
+        mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
+        mEmailSignInButton.setTypeface(typeface);
 
     }
 
@@ -305,7 +344,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            if (action == getString(R.string.action_sign_in)){
+            if (action.equals(getString(R.string.action_sign_in))){
                 mAuthTask = new UserLoginTask(email, password);
                 mAuthTask.execute((Void) null);
             } else {
@@ -411,8 +450,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         enterGame.putExtra("social_account", user.getSocialAccount());
         enterGame.putExtra("first_time", user.isFirstTime());
         enterGame.putExtra("persisted", persisted);
-        finish();
         startActivity(enterGame);
+        //if (lobbyId != 9999) android.os.Process.killProcess(lobbyId);
     }
 
     private interface ProfileQuery {
@@ -465,7 +504,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             showProgress(false);
 
             if (success) {
-                finish();
                 enterGame(loggedUser, false);
             } else {
                 mEmailView.requestFocus();
