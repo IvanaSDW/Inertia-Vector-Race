@@ -55,6 +55,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      * Id to identity READ_CONTACTS permission request.
      */
     private static final int REQUEST_READ_CONTACTS = 0;
+    private static final String TAG = "LOGINACTIVITY";
 
     /**
      * Keep track of the login task to ensure we can cancel it if requested.
@@ -80,7 +81,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private TextView promptSignUp;
     private String signUpError;
     private boolean toSignOut = false;
-    private int lobbyId = 9999;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -95,8 +95,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         }
 
         //Init main UI views
-        mLoginFormView = findViewById(R.id.login_form); //ScrollVIew that contains form
-        mProgressView = findViewById(R.id.login_progress);
+        mLoginFormView = findViewById(R.id.login_form); //ScrollView that contains form
+        mProgressView = findViewById(R.id.login_progress); //ProgressBar
 
         //Set Backendless
         Backendless.initApp(this, Defaults.APPLICATION_ID, Defaults.SECRET_KEY, Defaults.VERSION);
@@ -116,18 +116,27 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                 Log.i("Login Validation", "User " + response.getEmail() + " logged in automatically");
                                 loggedUser = new UserV1(response.getEmail(), response.getProperty("nickName").toString(),
                                         null, false);
-                                if (toSignOut) signOutInertiaUser();
-                                else enterGame(loggedUser, true);
+                                if (toSignOut) {
+                                    signOutInertiaUser();
+                                    return;
+                                } else {
+                                    enterGame(loggedUser, true);
+                                    return;
+                                }
                             }
 
                             @Override
                             public void handleFault(BackendlessFault fault) {
                                 Log.i("Login Validation", fault.getMessage());
+                                showProgress(false);
+                                initUI();
                             }
                         });
                     }
+                } else {
+                    showProgress(false);
+                    initUI();
                 }
-                showProgress(false);
             }
 
             @Override
@@ -139,22 +148,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         showProgress(true);
         Backendless.UserService.isValidLogin(isValidLoginCallBack);
 
-        initUI();
-
-        promptSignUp.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (promptSignUp.getText() == getString(R.string.prompt_for_new_account)){
-                    promptSignUp.setText(R.string.already_a_user);
-                    tilNickname.setVisibility(View.VISIBLE);
-                    mEmailSignInButton.setText(R.string.action_sign_up);
-                } else {
-                    promptSignUp.setText(R.string.prompt_for_new_account);
-                    mEmailSignInButton.setText(R.string.action_sign_in);
-                    tilNickname.setVisibility(View.GONE);
-                }
-            }
-        });
 
 //        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
 //            @Override
@@ -166,24 +159,16 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 //                return false;
 //            }
 //        });
-
-        mEmailSignInButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                attemptLogin(mEmailSignInButton.getText().toString());
-            }
-        });
-
     }
 
     private void signOutInertiaUser() {
+        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getBaseContext()).edit();
+        editor.putInt("sign_in_type", Defaults.SIGNED_OUT);
+        editor.apply();
         Backendless.UserService.logout(new AsyncCallback<Void>() {
             @Override
             public void handleResponse(Void response) {
                 Log.i("Logout", "succesfully logged out");
-                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getBaseContext()).edit();
-                editor.putInt("sign_in_type", Defaults.SIGNED_OUT);
-                editor.apply();
                 Intent lobby = new Intent(getBaseContext(), LobbyActivity.class);
                 lobby.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 startActivity(lobby);
@@ -203,6 +188,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
     private void initUI() {
         //Set Window Size
+        Log.i(TAG, "initUI: Entered initUI");
         Point lowerBottomPoint = new Point();
         getWindowManager().getDefaultDisplay().getRealSize(lowerBottomPoint);
         WindowManager.LayoutParams params = getWindow().getAttributes();
@@ -236,7 +222,32 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
         mEmailSignInButton.setTypeface(typeface);
 
-    }
+        promptSignUp.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (promptSignUp.getText() == getString(R.string.prompt_for_new_account)) {
+                    promptSignUp.setText(R.string.already_a_user);
+                    tilNickname.setVisibility(View.VISIBLE);
+                    mEmailSignInButton.setText(R.string.action_sign_up);
+                } else {
+                    promptSignUp.setText(R.string.prompt_for_new_account);
+                    mEmailSignInButton.setText(R.string.action_sign_in);
+                    tilNickname.setVisibility(View.GONE);
+                }
+            }
+        });
+
+        mEmailSignInButton.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                attemptLogin(mEmailSignInButton.getText().toString());
+            }
+        });
+
+
+        mLoginFormView.setVisibility(View.VISIBLE);
+
+    } //End of initUI()
 
     private void populateAutoComplete() {
         if (!mayRequestContacts()) {
@@ -361,7 +372,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
     private boolean isPasswordValid(String password) {
         //TODO: Replace this with your own logic
-        return password.length() > 4;
+        return password.length() >= 4;
     }
 
     /**
@@ -375,6 +386,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
             int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
+            findViewById(R.id.gridBackground).setVisibility(show ? View.GONE : View.VISIBLE);
+            findViewById(R.id.gridBackground).animate().setDuration(shortAnimTime).alpha(
+                    show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    findViewById(R.id.gridBackground).setVisibility(show ? View.GONE : View.VISIBLE);
+                }
+            });
             mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
             mLoginFormView.animate().setDuration(shortAnimTime).alpha(
                     show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
@@ -395,6 +414,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         } else {
             // The ViewPropertyAnimator APIs are not available, so simply show
             // and hide the relevant UI components.
+            findViewById(R.id.gridBackground).setVisibility(show ? View.GONE : View.VISIBLE);
             mProgressView.setVisibility(show ? View.VISIBLE : View.GONE);
             mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
@@ -451,7 +471,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         enterGame.putExtra("first_time", user.isFirstTime());
         enterGame.putExtra("persisted", persisted);
         startActivity(enterGame);
-        //if (lobbyId != 9999) android.os.Process.killProcess(lobbyId);
+        return;
     }
 
     private interface ProfileQuery {
