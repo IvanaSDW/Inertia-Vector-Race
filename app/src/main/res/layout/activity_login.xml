@@ -11,7 +11,7 @@
         android:id="@+id/gridBackground"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone" />
+        android:visibility="gone"/>
 
     <!-- Login progress -->
     <com.github.glomadrian.roadrunner.IndeterminateRoadRunner
@@ -27,7 +27,7 @@
         lib:path_data="@string/progress_path"
         lib:path_original_height="@integer/progress_path_height"
         lib:path_original_width="@integer/progress_path_width"
-        lib:stroke_width="3sp" />
+        lib:stroke_width="3sp"/>
 
     <ScrollView
         android:id="@+id/login_form"
@@ -58,7 +58,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:hint="@string/prompt_email"
-                    android:inputType="textEmailAddress"
+                    android:inputType="textEmailAddress|textNoSuggestions"
                     android:maxLines="1"
                     android:singleLine="true"
                     android:textSize="@dimen/login_text_size"/>
@@ -77,7 +77,7 @@
                     android:imeActionId="@+id/login"
                     android:imeActionLabel="@string/action_sign_in_short"
                     android:imeOptions="actionUnspecified"
-                    android:inputType="textPassword"
+                    android:inputType="textPassword|textNoSuggestions"
                     android:maxLines="1"
                     android:singleLine="true"
                     android:textSize="@dimen/login_text_size"

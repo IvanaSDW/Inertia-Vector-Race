@@ -91,7 +91,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         Bundle extras = getIntent().getExtras();
         if (extras != null){
             if (extras.containsKey("to_log_out")) toSignOut = extras.getBoolean("to_log_out");
-//            if (extras.containsKey("lobby_id")) lobbyId = extras.getInt("lobby_id");
         }
 
         //Init main UI views
@@ -118,10 +117,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                                         null, false);
                                 if (toSignOut) {
                                     signOutInertiaUser();
-                                    return;
+//                                    return;
                                 } else {
                                     enterGame(loggedUser, true);
-                                    return;
+//                                    return;
                                 }
                             }
 
@@ -464,7 +463,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     }
 
     public void enterGame(UserV1 user, boolean persisted){
-        Intent enterGame = new Intent(this, DummyActivity.class);
+        Intent enterGame = new Intent(this, GameMenuActivity.class);
         enterGame.putExtra("email", user.getEmail());
         enterGame.putExtra("nick_name", user.getNickName());
         enterGame.putExtra("social_account", user.getSocialAccount());

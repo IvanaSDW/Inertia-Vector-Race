@@ -40,12 +40,12 @@ public class GridBackground extends View {
     private void init(AttributeSet attrs, int defStyle) {
         // Load attributes
         final TypedArray a = getContext().obtainStyledAttributes(
-                attrs, R.styleable.PaperGridView, defStyle, 0);
-        int gridColor = a.getColor(R.styleable.PaperGridView_gridColor, ContextCompat.getColor(getContext(),
+                attrs, R.styleable.LobbyView, defStyle, 0);
+        int gridColor = a.getColor(R.styleable.LobbyView_gridColor, ContextCompat.getColor(getContext(),
                 R.color.primary));
-        paperColor = a.getColor(R.styleable.PaperGridView_paperColor, ContextCompat.getColor(getContext(),
+        paperColor = a.getColor(R.styleable.LobbyView_paperColor, ContextCompat.getColor(getContext(),
                 R.color.primary_light));
-        gridRows = a.getInt(R.styleable.PaperGridView_rows, 9);
+        gridRows = a.getInt(R.styleable.LobbyView_rows, 9);
         a.recycle();
 
         // Set Paints
